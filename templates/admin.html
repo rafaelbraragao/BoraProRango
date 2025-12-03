@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel de Administração</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      padding: 40px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    body.dark-mode {
+      background-color: #1e1e1e;
+      color: #f8f8f8;
+    }
+
+    #toggle-theme {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background-color: #fff;
+      color: #6b1e8f;
+      border: none;
+      padding: 6px 10px;
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    body.dark-mode #toggle-theme {
+      background-color: #444;
+      color: #f8f8f8;
+      border: 1px solid #f8f8f8;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .top-bar h1 {
+      color: #6b1e8f;
+      margin: 0;
+    }
+
+    body.dark-mode .top-bar h1 {
+      color: #f8f8f8;
+    }
+
+    .top-bar a {
+      color: #6b1e8f;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    body.dark-mode .top-bar a {
+      color: #f8f8f8;
+    }
+
+    .boas-vindas {
+      text-align: center;
+      margin: 20px 0 10px;
+      font-size: 16px;
+      color: #333;
+    }
+
+    body.dark-mode .boas-vindas {
+      color: #f8f8f8;
+    }
+
+    .avatar {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .avatar img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    }
+
+    .actions {
+      text-align: right;
+      margin-bottom: 15px;
+    }
+
+    .actions a {
+      background-color: #6b1e8f;
+      color: white;
+      padding: 8px 12px;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-left: 10px;
+    }
+
+    .actions a:hover {
+      background-color: #53176c;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+    }
+
+    body.dark-mode table {
+      background-color: #2c2c2c;
+    }
+
+    th, td {
+      padding: 12px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+
+    body.dark-mode th, body.dark-mode td {
+      border-color: #555;
+      color: #f8f8f8;
+    }
+
+    th {
+      background-color: #6b1e8f;
+      color: white;
+    }
+
+    .btn {
+      padding: 6px 10px;
+      background-color: #6b1e8f;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-right: 5px;
+    }
+
+    .btn:hover {
+      background-color: #53176c;
+    }
+
+    .imagem-oferta {
+      width: 80px;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 0 3px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <button id="toggle-theme" title="Alternar modo escuro">🌙</button>
+
+  <div class="top-bar">
+    <h1>Painel de Administração</h1>
+    <a href="/logout">Sair</a>
+  </div>
+
+  <div class="boas-vindas">
+    <p>Olá, <strong>{{ session['usuario_nome'] }}</strong>! Bem-vindo ao seu painel de administração.</p>
+  </div>
+
+  {% if session['usuario_avatar'] %}
+  <div class="avatar">
+    <img src="{{ url_for('static', filename='uploads/' ~ session['usuario_avatar']) }}" alt="Avatar do usuário">
+  </div>
+  {% endif %}
+
+  <div class="actions">
+    <a href="/editar_usuario">✏️ Editar Perfil</a>
+    <a href="/cadastrar">+ Nova Oferta</a>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>prato</th>
+        <th>Preço</th>
+        <th>Endereço</th>
+        <th>Validade</th>
+        <th>Imagem</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for oferta in ofertas %}
+      <tr>
+        <td>{{ oferta['rango'] }}</td>
+        <td>{{ oferta['preco'] }}</td>
+        <td>{{ oferta['endereco'] }}</td>
+        <td>{{ oferta['validade'] }}</td>
+        <td>
+          {% if oferta['imagem'] %}
+            <img src="{{ url_for('static', filename='uploads/' ~ oferta['imagem']) }}" alt="Imagem da oferta" class="imagem-oferta">
+          {% else %}
+            Sem imagem
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('editar', id=oferta['id']) }}" class="btn">Editar</a>
+          <a href="/excluir/{{ oferta['id'] }}" class="btn" onclick="return confirm('Tem certeza que deseja excluir esta oferta?')">Excluir</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <script>
+    if (localStorage.getItem('theme') === 'dark') {
+      document.body.classList.add('dark-mode');
+    }
+
+    const toggleBtn = document.getElementById('toggle-theme');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function () {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      });
+    }
+  </script>
+</body>
+</html>

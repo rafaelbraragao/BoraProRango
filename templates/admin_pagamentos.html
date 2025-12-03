@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Pagamentos</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Lista de Pagamentos</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Payment ID</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th>Criado em</th>
+                <th>Atualizado em</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pagamento in pagamentos %}
+            <tr>
+                <td>{{ pagamento.id }}</td>
+                <td>{{ pagamento.payment_id }}</td>
+                <td>R$ {{ "%.2f"|format(pagamento.valor) }}</td>
+                <td>{{ pagamento.status }}</td>
+                <td>{{ pagamento.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td>{{ pagamento.atualizado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

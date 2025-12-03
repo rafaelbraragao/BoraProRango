@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Cadastrar Nova Oferta</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      padding: 40px;
+    }
+    form {
+      background-color: #fff;
+      padding: 30px;
+      max-width: 600px;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="number"],
+    input[type="file"],
+    input[type="tel"],
+    select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 25px;
+      width: 100%;
+      padding: 12px;
+      background-color: #6b1e8f;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .rango {
+      display: none;
+      margin-top: 15px;
+      text-align: center;
+    }
+    .rango.active {
+      display: block;
+    }
+    .rango img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+    #submenus button {
+      margin: 5px auto;
+      display: block;
+      width: 100%;
+      padding: 8px;
+      background-color: #6b1e8f;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .erro {
+      color: red;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1 style="text-align:center;">Cadastrar Nova Oferta</h1>
+
+  {% if erro %}
+    <p class="erro">{{ erro }}</p>
+  {% endif %}
+
+  <form method="POST" enctype="multipart/form-data">
+    <label for="preco">Preço:</label>
+    <input type="number" name="preco" id="preco" step="0.01" required>
+
+    <label for="endereco">Endereço:</label>
+    <input type="text" name="endereco" id="endereco" required>
+
+    <label for="telefone">Telefone para Contato:</label>
+    <input type="tel" name="telefone" id="telefone" placeholder="(96) 91234-5678" required>
+
+    <label for="imagem">Imagem da Oferta (apenas JPG, máx. 2MB):</label>
+    <input type="file" name="imagem" id="imagem" accept=".jpg,.jpeg,image/jpeg">
+
+    <label for="categoria">Escolher do Cardápio:</label>
+    <select id="categoria" onchange="mostrarSubmenu()">
+      <option value="">-- Selecione uma categoria --</option>
+      <option value="assados">Assados</option>
+      <option value="tipicas">Comidas Típicas</option>
+      <option value="espetinhos">Espetinhos</option>
+      <option value="sopas">Sopas</option>
+    </select>
+
+    <div id="submenus"></div>
+    <div id="rangoSelecionado" class="rango"></div>
+    <input type="hidden" name="rango" id="rango">
+    <input type="hidden" name="imagem_url" id="imagem_url">
+
+    <button type="submit">Cadastrar Oferta</button>
+  </form>
+
+  <script>
+    const dados = {
+      assados: [
+        { nome: "Costela no Bafo", imagem: "https://www.cenariomt.com.br/wp-content/uploads/2021/07/costela-no-bafo.jpg" },
+        { nome: "Frango Assado", imagem: "https://www.receiteria.com.br/wp-content/uploads/frango-assado-na-airfryer-01-730x548.jpg" }
+      ],
+      tipicas: [
+        { nome: "Feijoada", imagem: "https://img.cybercook.com.br/receitas/103/feijoada-623x350.jpeg" },
+        { nome: "Vatapá", imagem: "https://www.receiteria.com.br/wp-content/uploads/vatapa-730x548.jpeg" }
+      ],
+      espetinhos: [
+        { nome: "Espetinho de Carne", imagem: "https://www.receiteria.com.br/wp-content/uploads/espetinho-de-carne-730x548.jpeg" },
+        { nome: "Espetinho de Frango", imagem: "https://www.receiteria.com.br/wp-content/uploads/espetinho-de-frango-730x548.jpeg" }
+      ],
+      sopas: [
+        { nome: "Caldo Verde", imagem: "https://www.receiteria.com.br/wp-content/uploads/caldo-verde-730x548.jpeg" },
+        { nome: "Canja de Galinha", imagem: "https://www.receiteria.com.br/wp-content/uploads/canja-de-galinha-730x548.jpeg" }
+      ]
+    };
+
+    function mostrarSubmenu() {
+      const categoria = document.getElementById("categoria").value;
+      const container = document.getElementById("submenus");
+      const rangoBox = document.getElementById("rangoSelecionado");
+
+      container.innerHTML = "";
+      rangoBox.innerHTML = "";
+      rangoBox.classList.remove("active");
+
+      if (categoria && dados[categoria]) {
+        const submenu = document.createElement("div");
+        submenu.innerHTML = `<h3>${categoria}</h3>`;
+
+        dados[categoria].forEach(rango => {
+          const btn = document.createElement("button");
+          btn.textContent = rango.nome;
+          btn.type = "button";
+          btn.onclick = () => mostrarPrato(rango);
+          submenu.appendChild(btn);
+        });
+
+        container.appendChild(submenu);
+      }
+    }
+
+    function mostrarPrato(rango) {
+      const pratoBox = document.getElementById("rangoSelecionado");
+      const inputPrato = document.getElementById("rango");
+      const imagemHidden = document.getElementById("imagem_url");
+      const preco = document.getElementById("preco").value;
+
+      pratoBox.innerHTML = `
+        <p><strong>Rango:</strong> ${rango.nome}</p>
+        ${preco ? `<p><strong>Valor:</strong> R$ ${parseFloat(preco).toFixed(2)}</p>` : ""}
+        <img src="${rango.imagem}" alt="${rango.nome}">
+      `;
+      pratoBox.classList.add("active");
+      inputPrato.value = rango.nome;
+      imagemHidden.value = rango.imagem;
+    }
+
+    const telefoneInput = document.getElementById("telefone");
+
+    telefoneInput.addEventListener("input", function (e) {
+      let valor = e.target.value.replace(/\D/g, "");
+      if (valor.length > 11) valor = valor.slice(0, 11);
+
+      let formatado = "";
+      if (valor.length > 0) formatado += "(" + valor.substring(0, 2);
+      if (valor.length >= 3) formatado += ") " + valor.substring(2, valor.length >= 11 ? 7 : 6);
+      if (valor.length >= 7) formatado += "-" + valor.substring(valor.length >= 11 ? 7 : 6);
+
+      e.target.value = formatado;
+    });
+
+    document.querySelector("form").addEventListener("submit", function (e) {
+      const telefone = telefoneInput.value.replace(/\D/g, "");
+      if (telefone.length < 10 || telefone.length > 11) {
+        e.preventDefault();
+        alert("Por favor, insira um número de telefone válido com DDD.");
+        telefoneInput.focus();
+      }
+    });
+  </script>
+</body>
+</html>

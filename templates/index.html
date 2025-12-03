@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>BoraProRango - Vitrine</title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+  <style>
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    body {
+    font-family: 'Segoe UI', sans-serif;
+   margin: 0;
+   background: 
+   linear-gradient(rgba(15, 12, 41, 0.4), rgba(36, 36, 62, 0.4)),
+   url("/static/img/fundo-floresta.jpg") no-repeat center center fixed;
+   background-size: cover;
+   color: #f0f0f0;
+   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+    body.dark-mode {
+    background: 
+    linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+    url("/static/img/fundo-floresta.jpg") no-repeat center center fixed;
+    background-size: cover;
+    color: #e0e0e0;
+}
+
+    header {
+      background: linear-gradient(to right, #6b1e8f, #8e2de2);
+      color: white;
+      padding: 20px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .branding {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .branding img {
+      width: 50px;
+      height: 50px;
+      border-radius: 8px;
+    }
+
+    .branding h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    #toggle-theme {
+      background: transparent;
+      border: 2px solid #fff;
+      color: #fff;
+      padding: 6px 10px;
+      border-radius: 50%;
+      font-size: 18px;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    #toggle-theme:hover {
+      background: rgba(255,255,255,0.1);
+      transform: rotate(20deg);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .controls input,
+    .controls button {
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      font-weight: bold;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .controls button {
+      background: linear-gradient(90deg, #8e2de2, #4a00e0);
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(142, 45, 226, 0.4);
+    }
+
+    .controls button:hover {
+      transform: scale(1.05);
+      background: linear-gradient(90deg, #4a00e0, #8e2de2);
+    }
+
+    body.dark-mode .controls input,
+    body.dark-mode .controls button {
+      background-color: #444;
+      color: #f8f8f8;
+      border: 1px solid #f8f8f8;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .card {
+      background: rgba(0, 0, 0, 0.6); /* fundo escuro translúcido */
+      color: #fff;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.4s ease;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.6s ease forwards;
+    }
+
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+    }
+
+    .card img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .card h3 {
+      margin: 10px 0 5px;
+      font-size: 18px;
+      color: #ffffff;
+    }
+
+    .card p {
+      margin: 4px 0;
+      font-size: 14px;
+      color: #cccccc;
+    }
+
+    .pagination {
+      text-align: center;
+      margin: 30px 0;
+    }
+
+    .pagination a,
+    .pagination strong {
+      margin: 0 5px;
+      text-decoration: none;
+      color: #f0f0f0;
+    }
+
+    .mobile-nav {
+      display: none;
+    }
+
+    .hamburger {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .controls {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        margin-top: 15px;
+      }
+
+      .controls input,
+      .controls button {
+        width: 100%;
+        margin-bottom: 8px;
+      }
+
+      .branding {
+        margin-bottom: 15px;
+      }
+
+      .mobile-nav {
+        display: block;
+        margin-top: 10px;
+      }
+
+      .controls button:nth-child(3),
+      .controls button:nth-child(4) {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="branding">
+      <img src="/static/logo.png" alt="Logo BoraProRango">
+      <h1>BoraProRango</h1>
+    </div>
+    <button id="toggle-theme">🌙</button>
+
+    <form method="GET" action="/" class="controls">
+      <input type="text" name="busca" placeholder="Buscar Ofertas" value="{{ request.args.get('busca', '') }}">
+      <button type="submit">Filtrar</button>
+      <button type="button" onclick="window.location.href='/registrar'">Cadastro</button>
+      <button type="button" onclick="window.location.href='/login'">Login</button>
+    </form>
+
+    <nav class="mobile-nav">
+      <button class="hamburger" onclick="toggleMenu()">☰</button>
+      <div id="menu" class="menu hidden">
+        <a href="/registrar">Cadastro</a>
+        <a href="/login">Login</a>
+      </div>
+    </nav>
+  </header>
+
+  <div class="grid">
+    {% for oferta in ofertas %}
+    <div class="card">
+     {% if oferta['imagem'] %}
+  {% if oferta['imagem'].startswith('http') %}
+    <img src="{{ oferta['imagem'] }}" alt="Imagem da oferta: {{ oferta['rango'] }}">
+  {% else %}
+    <img src="{{ url_for('static', filename='uploads/' ~ oferta['imagem']) }}" alt="Imagem da oferta: {{ oferta['rango'] }}">
+  {% endif %}
+{% else %}
+  <div style="height:150px; background-color:#333; border-radius:8px; display:flex; align-items:center; justify-content:center;">
+    <span style="color:#ccc;">Sem imagem</span>
+  </div>
+{% endif %}
+      <h3 title="{{ oferta['rango'] }}">{{ oferta['rango'] }}</h3>
+      {% if oferta['rango'] %}
+        <p>rango: {{ oferta['rango'] }}</p>
+      {% endif %}
+      <p>Valor: {{ oferta['preco'] }}</p>
+      <p>Endereço: {{ oferta['endereco'] }}</p>
+      <p>telefone: {{ oferta['telefone'] }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="pagination">
+    {% if total_paginas > 1 %}
+      {% for p in range(1, total_paginas + 1) %}
+        {% if p == page %}
+          <strong>[{{ p }}]</strong>
+        {% else %}
+          <a href="?page={{ p }}{% if busca %}&busca={{ busca }}{% endif %}">[{{ p }}]</a>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <script>
+    // Aplica tema escuro se armazenado no localStorage
+    if (localStorage.getItem('theme') === 'dark') {
+      document.body.classList.add('dark-mode');
+    }
+
+    // Alterna o tema ao clicar no botão
+    const toggleBtn = document.getElementById('toggle-theme');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function () {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      });
+    }
+
+    // Menu mobile
+    function toggleMenu() {
+      document.getElementById('menu').classList.toggle('hidden');
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Redefinir Senha</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      padding: 40px;
+      color: #f0f0f0;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    form {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      max-width: 400px;
+      margin: auto;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+
+    h2 {
+      text-align: center;
+      color: #ffffff;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #e0e0e0;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 6px;
+      border: none;
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 14px;
+    }
+
+    input:focus {
+      outline: none;
+      border: 1px solid #8e2de2;
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(90deg, #8e2de2, #4a00e0);
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(142, 45, 226, 0.4);
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover {
+      transform: scale(1.03);
+      background: linear-gradient(90deg, #4a00e0, #8e2de2);
+    }
+
+    .mensagem {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #90ee90;
+    }
+
+    .erro {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #ff4d4d;
+    }
+  </style>
+</head>
+<body>
+
+  <form method="POST">
+    <h2>Redefinir Senha</h2>
+
+    <label for="senha">Nova senha</label>
+    <input type="password" name="senha" required>
+
+    <button type="submit">Atualizar senha</button>
+
+    {% if mensagem %}
+      <p class="mensagem">{{ mensagem }}</p>
+    {% endif %}
+    {% if erro %}
+      <p class="erro">{{ erro }}</p>
+    {% endif %}
+  </form>
+
+</body>
+</html>

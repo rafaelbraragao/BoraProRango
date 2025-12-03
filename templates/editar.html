@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Editar Oferta</title>
+  <style>
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      padding: 40px;
+      color: #f0f0f0;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    body.dark-mode {
+      background: linear-gradient(135deg, #000000, #1a1a1a);
+      color: #e0e0e0;
+    }
+
+    #toggle-theme {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background: transparent;
+      border: 2px solid #fff;
+      color: #fff;
+      padding: 6px 10px;
+      font-size: 16px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 1000;
+      transition: background 0.3s ease, transform 0.3s ease;
+    }
+
+    #toggle-theme:hover {
+      background: rgba(255,255,255,0.1);
+      transform: rotate(20deg);
+    }
+
+    h1 {
+      text-align: center;
+      color: #ffffff;
+      margin-bottom: 30px;
+    }
+
+    form {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      max-width: 600px;
+      margin: auto;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+
+    body.dark-mode form {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+      color: #e0e0e0;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="file"],
+    select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 6px;
+      border: none;
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      font-size: 14px;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border: 1px solid #8e2de2;
+      background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    button {
+      margin-top: 25px;
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(90deg, #8e2de2, #4a00e0);
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(142, 45, 226, 0.4);
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    button:hover {
+      transform: scale(1.03);
+      background: linear-gradient(90deg, #4a00e0, #8e2de2);
+    }
+
+    .imagem-atual {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .imagem-atual img {
+      max-width: 200px;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+
+    .rango {
+      display: none;
+      max-width: 400px;
+      margin: 15px auto;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    }
+
+    .rango.active {
+      display: block;
+    }
+
+    .rango img {
+      width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    #submenus button {
+      margin: 5px auto;
+      display: block;
+      width: 100%;
+      padding: 8px;
+      background-color: #6b1e8f;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <button id="toggle-theme" title="Alternar modo escuro">🌙</button>
+
+ <h1>Editar Oferta</h1>
+
+<form method="POST" enctype="multipart/form-data">
+  <label for="rango">Prato da Oferta:</label>
+  <input type="text" name="rango" id="rango" value="{{ oferta.rango }}" required readonly>
+
+  <label for="preco">Preço:</label>
+  <input type="number" name="preco" id="preco" step="0.01" value="{{ oferta.preco }}" required>
+
+  <label for="endereco">Endereço:</label>
+  <input type="text" name="endereco" id="endereco" value="{{ oferta.endereco }}" required>
+
+  <label for="telefone">Telefone para Contato:</label>
+  <input type="tel" name="telefone" id="telefone" placeholder="(96) 91234-5678" required>
+
+  <label for="imagem">Nova Imagem (opcional):</label>
+  <input type="file" name="imagem" id="imagem">
+
+  {% if oferta.imagem %}
+  <div class="imagem-atual">
+    <p>Imagem atual:</p>
+    <img src="{{ url_for('static', filename='uploads/' ~ oferta.imagem) }}" alt="Imagem da oferta">
+  </div>
+  {% endif %}
+
+  <label for="categoria">Cardápio da Oferta:</label>
+  <select id="categoria" onchange="mostrarSubmenu()">
+    <option value="">-- Selecione uma categoria --</option>
+    <option value="assados">Assados</option>
+    <option value="tipicas">Comidas Típicas</option>
+    <option value="espetinhos">Espetinhos</option>
+    <option value="sopas">Sopas</option>
+  </select>
+
+  <div id="submenus"></div>
+  <div id="pratoSelecionado" class="rango"></div>
+
+  <button type="submit">Salvar Alterações</button>
+</form>
+
+<script>
+  const dados = {
+    assados: [
+      { nome: "Costela no Bafo", imagem: "costela-no-bafo.jpg" },
+      { nome: "Frango Assado", imagem: "frango-assado.jpg" }
+    ],
+    tipicas: [
+      { nome: "Feijoada", imagem: "feijoada.jpg" },
+      { nome: "Vatapá", imagem: "vatapa.jpg" }
+    ],
+    espetinhos: [
+      { nome: "Espetinho de Carne", imagem: "espetinho-carne.jpg" },
+      { nome: "Espetinho de Frango", imagem: "espetinho-frango.jpg" }
+    ],
+    sopas: [
+      { nome: "Caldo Verde", imagem: "caldo-verde.jpg" },
+      { nome: "Canja de Galinha", imagem: "canja-de-galinha.jpg" }
+    ]
+  };
+
+  function mostrarSubmenu() {
+    const categoria = document.getElementById("categoria").value;
+    const container = document.getElementById("submenus");
+    const pratoBox = document.getElementById("pratoSelecionado");
+
+    container.innerHTML = "";
+    pratoBox.innerHTML = "";
+    pratoBox.classList.remove("active");
+
+    if (categoria && dados[categoria]) {
+      const submenu = document.createElement("div");
+      submenu.innerHTML = `<h3>${categoria}</h3>`;
+
+      dados[categoria].forEach(prato => {
+        const btn = document.createElement("button");
+        btn.textContent = prato.nome;
+        btn.type = "button";
+        btn.onclick = () => mostrarPrato(prato);
+        submenu.appendChild(btn);
+      });
+
+      container.appendChild(submenu);
+    }
+  }
+
+  function mostrarPrato(prato) {
+    const pratoBox = document.getElementById("pratoSelecionado");
+    const inputRango = document.getElementById("rango");
+
+    pratoBox.innerHTML = `
+      <h3>${prato.nome}</h3>
+      <img src="/static/uploads/${prato.imagem}" alt="${prato.nome}">
+    `;
+    pratoBox.classList.add("active");
+    inputRango.value = prato.nome;
+  }
+</script>

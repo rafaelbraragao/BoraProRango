@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Editar Perfil</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      padding: 40px;
+      color: #f0f0f0;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    form {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      max-width: 450px;
+      margin: auto;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 6px;
+      border: none;
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    input[type="file"] {
+      background: none;
+      border: none;
+    }
+
+    button {
+      margin-top: 25px;
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(90deg, #8e2de2, #4a00e0);
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(142, 45, 226, 0.4);
+    }
+
+    .avatar-preview {
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .avatar-preview img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    }
+
+    .mensagem {
+      text-align: center;
+      margin-top: 15px;
+      color: #ff4d4d;
+    }
+  </style>
+</head>
+<body>
+  <form method="POST" enctype="multipart/form-data">
+    <h2>Editar Perfil</h2>
+
+    <label for="nome">Nome</label>
+    <input type="text" name="nome" value="{{ usuario.nome }}" required>
+
+    <label for="email">E-mail</label>
+    <input type="email" name="email" value="{{ usuario.email }}" required>
+
+    <label for="senha">Nova Senha</label>
+    <input type="password" name="senha" placeholder="Deixe em branco para manter a atual">
+
+    <label for="avatar">Novo Avatar (opcional)</label>
+    <input type="file" name="avatar" accept="image/*">
+
+    {% if usuario.avatar %}
+    <div class="avatar-preview">
+      <p>Avatar atual:</p>
+      <img src="{{ url_for('static', filename='uploads/' ~ usuario.avatar) }}" alt="Avatar atual">
+    </div>
+    {% endif %}
+
+    <button type="submit">Salvar Alterações</button>
+
+    {% if erro %}
+      <p class="mensagem">{{ erro }}</p>
+    {% endif %}
+  </form>
+</body>
+</html>

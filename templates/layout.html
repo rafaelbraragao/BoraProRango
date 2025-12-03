@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Meu Site{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+</head>
+<body>
+
+  <!-- Navbar (opcional) -->
+  {% if session['usuario_nome'] %}
+    <div class="alert alert-success text-center" role="alert">
+      Bem-vindo, {{ session['usuario_nome'] }}!
+      {% if session['usuario_avatar'] %}
+        <img src="{{ url_for('static', filename='uploads/' ~ session['usuario_avatar']) }}"
+             alt="Avatar" class="rounded-circle" width="40" height="40">
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="container mt-4">
+    {% block content %}{% endblock %}
+  </div>
+
+</body>
+</html>
