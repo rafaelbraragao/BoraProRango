@@ -1,4 +1,6 @@
 @echo off
+call venv\Scripts\activate.bat
+
 echo.
 echo ================================
 echo   INICIAR APLICATIVO FLASK
@@ -25,4 +27,4 @@ if "%opcao%"=="1" (
 set FLASK_APP=app.py
 echo.
 echo Iniciando com ambiente: %FLASK_ENV%
-flask run
+python -m flask run

@@ -16,33 +16,61 @@
         th {
             background-color: #f2f2f2;
         }
+
+        .status-approved {
+            color: green;
+            font-weight: bold;
+        }
+        .status-pending {
+            color: orange;
+            font-weight: bold;
+        }
+        .status-rejected, .status-erro {
+            color: red;
+            font-weight: bold;
+        }
+
+        button {
+            padding: 4px 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <h1>Lista de Pagamentos</h1>
-    <table border="1">
+    <table>
         <thead>
-            <tr>
-                <th>ID</th>
-                <th>Payment ID</th>
-                <th>Valor</th>
-                <th>Status</th>
-                <th>Criado em</th>
-                <th>Atualizado em</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for pagamento in pagamentos %}
-            <tr>
-                <td>{{ pagamento.id }}</td>
-                <td>{{ pagamento.payment_id }}</td>
-                <td>R$ {{ "%.2f"|format(pagamento.valor) }}</td>
-                <td>{{ pagamento.status }}</td>
-                <td>{{ pagamento.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
-                <td>{{ pagamento.atualizado_em.strftime('%d/%m/%Y %H:%M') }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
+    <tr>
+        <th>ID</th>
+        <th>Payment ID</th>
+        <th>Valor</th>
+        <th>Status</th>
+        <th>Criado em</th>
+        <th>Atualizado em</th>
+        <th>Usuário</th> <!-- NOVO -->
+        <th>Ações</th>
+    </tr>
+</thead>
+<tbody>
+    {% for pagamento in pagamentos %}
+    <tr>
+        <td>{{ pagamento.id }}</td>
+        <td>{{ pagamento.payment_id }}</td>
+        <td>R$ {{ "%.2f"|format(pagamento.valor) }}</td>
+        <td class="status-{{ pagamento.status }}">{{ pagamento.status }}</td>
+        <td>{{ pagamento.criado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td>{{ pagamento.atualizado_em.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td>{{ pagamento.usuario.nome }}</td> <!-- NOVO -->
+        <td>
+            <form action="/verificar_pagamento" method="get" style="display:inline;">
+                <input type="hidden" name="payment_id" value="{{ pagamento.payment_id }}">
+                <button type="submit">Verificar status</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
     </table>
 </body>
 </html>

@@ -8,10 +8,12 @@ from collections import defaultdict
 from extensoes import db  # ✅ importa do novo módulo
 
 # 🌐 Bibliotecas externas
+from utils import gerar_qr_code_pix
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask import Flask
+from flask_login import current_user
 from flask import current_app
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -30,6 +32,7 @@ from decorators import login_required, admin_required
 from models import Usuario, Oferta, Pagamento  # ✅ agora pode impo
 
 # 🔁 Detecta o ambiente e carrega o .env correspondente
+load_dotenv()
 env = os.getenv('FLASK_ENV', 'development')
 if env == 'production':
     load_dotenv('.env.prod')
@@ -38,13 +41,14 @@ elif env == 'testing':
 else:
     load_dotenv('.env')
 
+
 # 🚀 Inicializa o app
 app = Flask(__name__)
-
 
 @app.route('/favicon.ico')
 def favicon():
     return redirect(url_for('static', filename='favicon.ico'))
+
 # 🔧 Aplica a configuração correta
 if env == 'production':
     app.config.from_object(ProductionConfig)
@@ -78,14 +82,269 @@ else:
     public_key = os.getenv("MP_PUBLIC_KEY_SANDBOX")
     access_token = os.getenv("MP_ACCESS_TOKEN_SANDBOX")
 
-if not access_token or not access_token.startswith("TEST-") and ambiente_mp != "production":
-    raise RuntimeError("Access token inválido ou ausente. Verifique o .env.")
+# Verificação de segurança: checa se o token está ausente ou se é um token live em ambiente de sandbox
+if not access_token or (not access_token.startswith("TEST-") and ambiente_mp != "production"):
+    raise RuntimeError("Access token inválido ou ausente. Verifique o .env. Se estiver em 'sandbox', use um token que comece com 'TEST-'.")
 
-sdk = mercadopago.SDK(access_token)
+# ✅ CORREÇÃO AQUI: Usa a variável Python 'access_token' que já contém o token correto
+#sdk = mercadopago.SDK(access_token)
+sdk = mercadopago.SDK(os.getenv("MP_ACCESS_TOKEN_SANDBOX"))
 
 # 🔐 Serializer para tokens de recuperação de senha
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 # --- FIM DA CONFIGURAÇÃO ---
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    # 🔐 Validação do token de segurança
+    token_recebido = request.args.get("token")
+    if token_recebido != os.getenv("WEBHOOK_TOKEN"):
+        print("Token inválido recebido no webhook")
+        return '', 403
+
+    # ✅ Se o token for válido, continua o processamento
+    data = request.get_json()
+    print("Webhook recebido:", data)
+
+    if data.get("type") == "payment":
+        payment_id = data.get("data", {}).get("id")
+        if payment_id:
+            try:
+                payment_info = sdk.payment().get(payment_id)
+                status = payment_info["response"]["status"]
+                print(f"Status atualizado via webhook: {status}")
+
+                pagamento = Pagamento.query.filter_by(payment_id=str(payment_id)).first()
+                if pagamento:
+                    pagamento.status = status
+                    db.session.commit()
+                    print(f"Pagamento {payment_id} atualizado para {status}")
+                else:
+                    print(f"Pagamento {payment_id} não encontrado no banco")
+
+            except Exception as e:
+                print(f"Erro ao buscar pagamento: {e}")
+
+    return '', 200
+ 
+# Página principal de pagamento
+@app.route('/pagamento/<payment_id>')
+@login_required
+def pagamento_pix(payment_id):
+    pagamento = Pagamento.query.filter_by(payment_id=payment_id).first_or_404()
+    # Aqui você chamaria a API Pix para gerar o QR Code
+    qr_code_url = gerar_qr_code_pix(pagamento.payment_id, pagamento.valor)
+    return render_template('pagamento_pix.html', qr_code=qr_code_url, valor=pagamento.valor)
+
+@app.route("/pagamento", methods=["GET", "POST"])
+def pagamento():
+    contexto = {}
+
+    if request.method == "POST":
+        valor = request.form.get("valor", "50.00")
+        contexto["valor_pix"] = valor
+
+        payment_data = {
+            "transaction_amount": float(valor),
+            "description": "Pagamento via PIX",
+            "payment_method_id": "pix",
+            "payer": {
+                "email": "rafaelbraragao@gmail.com",
+                "first_name": "Rafael",
+                "last_name": "Teste",
+                "identification": {
+                    "type": "CPF",
+                    "number": "19119119100"
+                }
+            }
+        }
+
+        response = sdk.payment().create(payment_data)
+        payment = response.get("response", {})
+        status = response.get("status")
+
+        print(json.dumps(payment, indent=2))
+
+        if status != 201 or "point_of_interaction" not in payment:
+            contexto.update({
+                "status_pagamento": "erro",
+                "payment_id": None
+            })
+        else:
+            dados = payment["point_of_interaction"]["transaction_data"]
+            contexto.update({
+                "status_pagamento": "sucesso",
+                "qr_code_base64": dados["qr_code_base64"],
+                "chave_pix": dados["qr_code"],
+                "payment_id": payment["id"]
+            })
+
+    return render_template("pagamento.html", **contexto)
+# Simular aprovação de pagamento (sandbox)
+@app.route("/simular_pagamento", methods=["POST"])
+def simular_pagamento():
+    payment_id = request.form.get("payment_id")
+
+    try:
+        # Atualiza o status no banco de dados local
+        pagamento = Pagamento.query.filter_by(payment_id=payment_id).first()
+        if pagamento:
+            pagamento.status = "approved"
+            db.session.commit()
+        else:
+            print(f"Pagamento com ID {payment_id} não encontrado.")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erro ao simular pagamento: {e}")
+
+    return redirect(f"/verificar_pagamento?payment_id={payment_id}")
+# Verificar status do pagamento
+@app.route("/verificar_pagamento", methods=["GET"])
+def verificar_pagamento():
+    payment_id = request.args.get("payment_id")
+
+    try:
+        payment_response = sdk.payment().get(payment_id)
+        print("🔍 Resposta completa do Mercado Pago:")
+        print(json.dumps(payment_response, indent=2, ensure_ascii=False))
+
+        payment = payment_response.get("response", {})
+        status_pagamento = payment.get("status")
+
+        if not status_pagamento:
+            raise ValueError("Resposta do Mercado Pago não contém 'status'.")
+
+        # Atualiza o status no banco
+        pagamento = Pagamento.query.filter_by(payment_id=str(payment_id)).first()
+        if pagamento:
+            pagamento.status = status_pagamento
+            db.session.commit()
+            print(f"✅ Pagamento {payment_id} atualizado para {status_pagamento}")
+        else:
+            print(f"⚠️ Pagamento {payment_id} não encontrado no banco.")
+
+    except Exception as e:
+        print(f"❌ Erro ao verificar pagamento: {e}")
+
+    # Redireciona de volta para a lista de pagamentos
+    return redirect("/admin/pagamentos")
+@app.route("/meus_pagamentos")
+@login_required
+def meus_pagamentos():
+    pagamentos = Pagamento.query.filter_by(usuario_id=current_user.id).order_by(Pagamento.criado_em.desc()).all()
+    return render_template("meus_pagamentos.html", pagamentos=pagamentos)
+
+@app.route('/cadastrar', methods=['GET', 'POST'])
+@login_required
+def cadastrar():
+    erro = None
+
+    if request.method == 'POST':
+        preco = request.form['preco'].strip()
+        endereco = request.form['endereco'].strip()
+        telefone = request.form['telefone'].strip()
+        rango = request.form.get('rango', '').strip()
+        imagem = request.files.get('imagem')
+
+        if not preco or not endereco or not telefone or not rango or not imagem:
+            erro = 'Todos os campos são obrigatórios, incluindo a imagem.'
+            return render_template('cadastrar.html', erro=erro)
+
+        if not imagem.filename.lower().endswith(('.jpg', '.jpeg')):
+            erro = 'Apenas arquivos JPG são permitidos.'
+            return render_template('cadastrar.html', erro=erro)
+
+        imagem.seek(0, os.SEEK_END)
+        tamanho = imagem.tell()
+        imagem.seek(0)
+
+        if tamanho > 2 * 1024 * 1024:
+            erro = 'A imagem deve ter no máximo 2MB.'
+            return render_template('cadastrar.html', erro=erro)
+
+        ext = os.path.splitext(imagem.filename)[1]
+        nome_arquivo = secure_filename(f"{uuid.uuid4().hex}{ext}")
+        caminho = os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo)
+
+        try:
+            imagem.save(caminho)
+        except Exception as e:
+            erro = f'Erro ao salvar imagem: {e}'
+            print(f"ERRO DE ARQUIVO: {e}")
+            return render_template('cadastrar.html', erro=erro)
+
+        try:
+            # Cria a oferta com status pendente (ainda sem payment_id)
+            nova_oferta = Oferta(
+                preco=preco,
+                endereco=endereco,
+                telefone=telefone,
+                rango=rango,
+                imagem=nome_arquivo,
+                usuario_id=session['usuario_id'],
+                status_pagamento='pendente'
+            )
+            db.session.add(nova_oferta)
+            db.session.flush()
+
+            # Cria o pagamento via Mercado Pago
+            payment_data = {
+                "transaction_amount": float(preco),
+                "description": "Pagamento via PIX",
+                "payment_method_id": "pix",
+                "payer": {
+                    "email": "rafaelbraragao@gmail.com",
+                    "first_name": "Rafael",
+                    "last_name": "Teste",
+                    "identification": {
+                        "type": "CPF",
+                        "number": "19119119100"
+                    }
+                }
+            }
+
+            response = sdk.payment().create(payment_data)
+            payment = response.get("response", {})
+            status = response.get("status")
+
+            if status != 201 or "point_of_interaction" not in payment:
+                raise Exception("Erro ao gerar pagamento no Mercado Pago")
+
+            payment_id = str(payment["id"])
+
+            # Atualiza a oferta com o payment_id
+            nova_oferta.payment_id = payment_id
+
+            # Cria o registro de pagamento no banco
+            pagamento = Pagamento(
+                payment_id=payment_id,
+                valor=float(preco),
+                status='pendente',
+                usuario_id=session['usuario_id'],
+                oferta_id=nova_oferta.id
+            )
+            db.session.add(pagamento)
+            db.session.commit()
+
+            # Extrai dados do QR Code
+            dados = payment["point_of_interaction"]["transaction_data"]
+            chave_pix = dados["qr_code"]
+            qr_code_base64 = dados["qr_code_base64"]
+
+            return render_template(
+                'pagamento.html',
+                payment_id=payment_id,
+                chave_pix=chave_pix,
+                qr_code_base64=qr_code_base64,
+                valor_pix=preco,
+                status_pagamento='sucesso'
+            )
+
+        except Exception as e:
+            db.session.rollback()
+            erro = f"Erro ao cadastrar oferta: {e}"
+            print(f"ERRO SQLALCHEMY: {e}")
+
+    return render_template('cadastrar.html', erro=erro)
 
 @app.route('/', endpoint='pagina_principal')
 def mostrar_pagina_principal():
@@ -147,68 +406,7 @@ def mostrar_pagina_principal():
         busca=busca
     )
 
-@app.route('/cadastrar', methods=['GET', 'POST'])
-@login_required
-def cadastrar():
-    erro = None
 
-    if request.method == 'POST':
-        preco = request.form['preco'].strip()
-        endereco = request.form['endereco'].strip()
-        telefone = request.form['telefone'].strip()
-        rango = request.form.get('rango', '').strip()
-        imagem = request.files.get('imagem')
-
-        if not preco or not endereco or not telefone or not rango or not imagem:
-            erro = 'Todos os campos são obrigatórios, incluindo a imagem.'
-            return render_template('cadastrar.html', erro=erro)
-
-        nova_oferta = Oferta(
-            preco=preco,
-            endereco=endereco,
-            telefone=telefone,
-            rango=rango,
-            usuario_id=session['usuario_id']
-        )
-
-        if imagem and imagem.filename != '':
-            if not imagem.filename.lower().endswith(('.jpg', '.jpeg')):
-                erro = 'Apenas arquivos JPG são permitidos.'
-                return render_template('cadastrar.html', erro=erro)
-
-            imagem.seek(0, os.SEEK_END)
-            tamanho = imagem.tell()
-            imagem.seek(0)
-
-            if tamanho > 2 * 1024 * 1024:
-                erro = 'A imagem deve ter no máximo 2MB.'
-                return render_template('cadastrar.html', erro=erro)
-
-            ext = os.path.splitext(imagem.filename)[1]
-            nome_arquivo = secure_filename(f"{uuid.uuid4().hex}{ext}")
-            caminho = os.path.join(app.config['UPLOAD_FOLDER'], nome_arquivo)
-
-            try:
-                imagem.save(caminho)
-                nova_oferta.imagem = nome_arquivo
-            except Exception as e:
-                erro = f'Erro ao salvar imagem: {e}'
-                print(f"ERRO DE ARQUIVO: {e}")
-                return render_template('cadastrar.html', erro=erro)
-        else:
-            erro = 'Imagem obrigatória.'
-            return render_template('cadastrar.html', erro=erro)
-
-        try:
-            db.session.add(nova_oferta)
-            db.session.commit()
-            return redirect('/admin')
-        except Exception as e:
-            db.session.rollback()
-            erro = f"Erro ao cadastrar oferta: {e}"
-            print(f"ERRO SQLALCHEMY: {e}")
-
-    return render_template('cadastrar.html', erro=erro)
                
                
 # Rota de login
@@ -465,106 +663,7 @@ def admin():
 
     return render_template('admin.html', ofertas=ofertas)
 
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    data = request.get_json()
-    print("Webhook recebido:", data)
 
-    if data.get("type") == "payment":
-        payment_id = data.get("data", {}).get("id")
-        if payment_id:
-            try:
-                payment_info = sdk.payment().get(payment_id)
-                status = payment_info["response"]["status"]
-                print(f"Status atualizado via webhook: {status}")
-
-                # Atualiza o status no banco de dados
-                pagamento = Pagamento.query.filter_by(payment_id=str(payment_id)).first()
-                if pagamento:
-                    pagamento.status = status
-                    db.session.commit()
-                    print(f"Pagamento {payment_id} atualizado para {status}")
-                else:
-                    print(f"Pagamento {payment_id} não encontrado no banco")
-
-            except Exception as e:
-                print(f"Erro ao buscar pagamento: {e}")
-
-    return '', 200
- 
-# Página principal de pagamento
-
-@app.route("/pagamento", methods=["GET", "POST"])
-def pagamento():
-    contexto = {}
-
-    if request.method == "POST":
-        valor = request.form.get("valor", "50.00")
-        contexto["valor_pix"] = valor
-
-        payment_data = {
-            "transaction_amount": float(valor),
-            "description": "Pagamento via PIX",
-            "payment_method_id": "pix",
-            "payer": {
-                "email": "rafaelbraragao@gmail.com",
-                "first_name": "Rafael",
-                "last_name": "Teste",
-                "identification": {
-                    "type": "CPF",
-                    "number": "19119119100"
-                }
-            }
-        }
-
-        response = sdk.payment().create(payment_data)
-        payment = response.get("response", {})
-        status = response.get("status")
-
-        print(json.dumps(payment, indent=2))
-
-        if status != 201 or "point_of_interaction" not in payment:
-            contexto.update({
-                "status_pagamento": "erro",
-                "payment_id": None
-            })
-        else:
-            dados = payment["point_of_interaction"]["transaction_data"]
-            contexto.update({
-                "status_pagamento": "sucesso",
-                "qr_code_base64": dados["qr_code_base64"],
-                "chave_pix": dados["qr_code"],
-                "payment_id": payment["id"]
-            })
-
-    return render_template("pagamento.html", **contexto)
-# Simular aprovação de pagamento (sandbox)
-@app.route("/simular_pagamento", methods=["POST"])
-def simular_pagamento():
-    payment_id = request.form.get("payment_id")
-
-    try:
-        # Simula a aprovação do pagamento no ambiente sandbox
-        sdk.payment().update(payment_id, {"status": "approved"})
-    except Exception as e:
-        print(f"Erro ao simular pagamento: {e}")
-
-    return redirect(f"/verificar_pagamento?payment_id={payment_id}")
-# Verificar status do pagamento
-@app.route("/verificar_pagamento", methods=["GET"])
-def verificar_pagamento():
-    payment_id = request.args.get("payment_id")
-
-    try:
-        payment_response = sdk.payment().get(payment_id)
-        payment = payment_response["response"]
-        status_pagamento = payment["status"]
-    except Exception as e:
-        status_pagamento = "erro"
-        print(f"Erro ao verificar pagamento: {e}")
-
-    return render_template("pagamento.html", status_pagamento=status_pagamento, payment_id=payment_id)
-# Página separada para pagamento com cartão (opcional)
 
 @app.route("/admin/pagamentos")
 def listar_pagamentos():
@@ -633,10 +732,11 @@ def limpar_ofertas_orfas():
     except Exception as e:
         db.session.rollback()
         return f'Erro ao apagar ofertas órfãs: {e}', 500
-
+    
 @app.errorhandler(403)
 def acesso_negado(e):
     return render_template('403.html'), 403
+
 @app.route('/teste-email')
 def teste_email():
     from flask_mail import Message

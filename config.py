@@ -8,7 +8,7 @@ class Config:
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')  # ✅ Corrigido aqui
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
-    SECRET_KEY = os.getenv('SECRET_KEY', '3f8a1c9e4e2b4f1a9d7c6a5b2e1f0d3c')
+    SECRET_KEY = os.getenv('SECRET_KEY', 'e1140a8d3ef3d8fc3fb2216b27112c1bf95c14efbb8f8f4ea98085f131b38213')
 
 class DevelopmentConfig(Config):
     DEBUG = True
