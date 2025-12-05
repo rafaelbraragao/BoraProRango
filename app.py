@@ -41,7 +41,6 @@ elif env == 'testing':
 else:
     load_dotenv('.env')
 
-
 # 🚀 Inicializa o app
 app = Flask(__name__)
 
@@ -87,7 +86,7 @@ if not access_token or (not access_token.startswith("TEST-") and ambiente_mp != 
     raise RuntimeError("Access token inválido ou ausente. Verifique o .env. Se estiver em 'sandbox', use um token que comece com 'TEST-'.")
 
 # ✅ CORREÇÃO AQUI: Usa a variável Python 'access_token' que já contém o token correto
-#sdk = mercadopago.SDK(access_token)
+sdk = mercadopago.SDK(access_token)
 sdk = mercadopago.SDK(os.getenv("MP_ACCESS_TOKEN_SANDBOX"))
 
 # 🔐 Serializer para tokens de recuperação de senha
@@ -126,6 +125,24 @@ def webhook():
 
     return '', 200
  
+# Simular aprovação de pagamento (sandbox)
+@app.route("/simular_pagamento", methods=["POST"])
+def simular_pagamento():
+    payment_id = request.form.get("payment_id")
+
+    try:
+        # Atualiza o status no banco de dados local
+        pagamento = Pagamento.query.filter_by(payment_id=payment_id).first()
+        if pagamento:
+            pagamento.status = "approved"
+            db.session.commit()
+        else:
+            print(f"Pagamento com ID {payment_id} não encontrado.")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erro ao simular pagamento: {e}")
+
+    return redirect(f"/verificar_pagamento?payment_id={payment_id}")
 # Página principal de pagamento
 @app.route('/pagamento/<payment_id>')
 @login_required
@@ -179,27 +196,9 @@ def pagamento():
             })
 
     return render_template("pagamento.html", **contexto)
-# Simular aprovação de pagamento (sandbox)
-@app.route("/simular_pagamento", methods=["POST"])
-def simular_pagamento():
-    payment_id = request.form.get("payment_id")
 
-    try:
-        # Atualiza o status no banco de dados local
-        pagamento = Pagamento.query.filter_by(payment_id=payment_id).first()
-        if pagamento:
-            pagamento.status = "approved"
-            db.session.commit()
-        else:
-            print(f"Pagamento com ID {payment_id} não encontrado.")
-    except Exception as e:
-        db.session.rollback()
-        print(f"Erro ao simular pagamento: {e}")
-
-    return redirect(f"/verificar_pagamento?payment_id={payment_id}")
-# Verificar status do pagamento
 @app.route("/verificar_pagamento", methods=["GET"])
-def verificar_pagamento():
+def verificaR_pagamento():
     payment_id = request.args.get("payment_id")
 
     try:
@@ -226,7 +225,8 @@ def verificar_pagamento():
         print(f"❌ Erro ao verificar pagamento: {e}")
 
     # Redireciona de volta para a lista de pagamentos
-    return redirect("/admin/pagamentos")
+    return redirect("/admin.html")
+
 @app.route("/meus_pagamentos")
 @login_required
 def meus_pagamentos():
@@ -436,6 +436,8 @@ def login():
             session['usuario_avatar'] = getattr(user, 'avatar', '')
 
             if user.is_admin:
+                print("Redirecionando para listar_usuarios")
+
                 return redirect(url_for('listar_usuarios'))
             else:
                 return redirect(url_for('admin'))
@@ -663,9 +665,8 @@ def admin():
 
     return render_template('admin.html', ofertas=ofertas)
 
-
-
 @app.route("/admin/pagamentos")
+@admin_required
 def listar_pagamentos():
     pagamentos = Pagamento.query.order_by(Pagamento.criado_em.desc()).all()
     print("Pagamentos encontrados:", pagamentos)
@@ -713,12 +714,50 @@ def listar_usuarios():
         usuarios = Usuario.query.all()
 
     return render_template('admin_usuarios.html', usuarios=usuarios, termo=termo)
+@app.route('/admin/apagar_ofertas_usuario/<int:usuario_id>')
+@admin_required
+def apagar_ofertas_usuario(usuario_id):
+    ofertas = Oferta.query.filter_by(usuario_id=usuario_id).all()
+    total = 0
+
+    for oferta in ofertas:
+        # Remove imagem associada, se houver
+        if oferta.imagem:
+            caminho = os.path.join(current_app.root_path, 'static/uploads', oferta.imagem)
+            if os.path.exists(caminho):
+                try:
+                    os.remove(caminho)
+                except Exception as e:
+                    print(f"Erro ao remover imagem {oferta.imagem}: {e}")
+
+        # Remove a oferta (pagamentos serão apagados automaticamente)
+        db.session.delete(oferta)
+        total += 1
+
+    db.session.commit()
+    return f'Todas as {total} ofertas do usuário {usuario_id} foram apagadas com sucesso.'
 @app.route('/admin/apagar_ofertas')
 @admin_required
 def apagar_ofertas():
-    Oferta.query.delete()
+    ofertas = Oferta.query.all()
+    total = 0
+
+    for oferta in ofertas:
+        # Remove imagem associada, se houver
+        if oferta.imagem:
+            caminho = os.path.join(current_app.root_path, 'static/uploads', oferta.imagem)
+            if os.path.exists(caminho):
+                try:
+                    os.remove(caminho)
+                except Exception as e:
+                    print(f"Erro ao remover imagem {oferta.imagem}: {e}")
+
+        db.session.delete(oferta)
+        total += 1
+
     db.session.commit()
-    return 'Todas as ofertas foram apagadas com sucesso.'
+    flash(f'Todas as {total} ofertas foram apagadas com sucesso.', 'success')
+    return redirect(url_for('listar_usuarios'))
 
 @app.route('/admin/limpar_ofertas_orfas')
 @admin_required

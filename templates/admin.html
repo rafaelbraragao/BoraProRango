@@ -180,7 +180,7 @@
         <th>prato</th>
         <th>Preço</th>
         <th>Endereço</th>
-        <th>Validade</th>
+   
         <th>Imagem</th>
         <th>Ações</th>
       </tr>
@@ -191,7 +191,7 @@
         <td>{{ oferta['rango'] }}</td>
         <td>{{ oferta['preco'] }}</td>
         <td>{{ oferta['endereco'] }}</td>
-        <td>{{ oferta['validade'] }}</td>
+  
         <td>
           {% if oferta['imagem'] %}
             <img src="{{ url_for('static', filename='uploads/' ~ oferta['imagem']) }}" alt="Imagem da oferta" class="imagem-oferta">

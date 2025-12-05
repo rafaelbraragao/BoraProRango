@@ -13,7 +13,7 @@ class Usuario(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
 
     # Relacionamentos
-    ofertas = db.relationship('Oferta', backref='usuario', lazy=True)
+    ofertas = db.relationship('Oferta', backref='usuario',lazy=True,cascade="all, delete-orphan")
     pagamentos = db.relationship('Pagamento', backref='usuario', lazy=True)
 
     def __repr__(self):
@@ -38,8 +38,12 @@ class Oferta(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
 
     # Relacionamento com pagamentos
-    pagamentos = db.relationship('Pagamento', backref='oferta', lazy=True)
-
+    pagamentos = db.relationship(
+    'Pagamento',
+    backref='oferta',
+    lazy=True,
+    cascade="all, delete-orphan"
+)
     def __repr__(self):
         return f'<Oferta {self.rango}>'
 

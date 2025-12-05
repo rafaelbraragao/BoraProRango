@@ -152,15 +152,20 @@
           {% endif %}
         </td>
         <td>
-          {% if not usuario.is_admin %}
-          <form method="POST" action="{{ url_for('promover_usuario', id=usuario.id) }}">
-            <button type="submit" class="btn-promote">Promover a admin</button>
-          </form>
-          {% endif %}
-          <form method="POST" action="{{ url_for('excluir_usuario', id=usuario.id) }}" onsubmit="return confirm('Tem certeza que deseja excluir este usuário e TODAS as ofertas dele?');">
-            <button type="submit" class="btn-delete">Excluir</button>
-          </form>
-        </td>
+  {% if not usuario.is_admin %}
+  <form method="POST" action="{{ url_for('promover_usuario', id=usuario.id) }}">
+    <button type="submit" class="btn-promote">Promover a admin</button>
+  </form>
+  {% endif %}
+  <form method="POST" action="{{ url_for('excluir_usuario', id=usuario.id) }}" onsubmit="return confirm('Tem certeza que deseja excluir este usuário e TODAS as ofertas dele?');">
+    <button type="submit" class="btn-delete">Excluir</button>
+  </form>
+  <a href="{{ url_for('apagar_ofertas_usuario', usuario_id=usuario.id) }}"
+     class="btn-clean"
+     onclick="return confirm('Tem certeza que deseja apagar TODAS as ofertas deste usuário?');">
+     🧹 Apagar Ofertas
+  </a>
+</td>
       </tr>
       {% endfor %}
     </tbody>
